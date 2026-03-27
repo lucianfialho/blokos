@@ -1,0 +1,30 @@
+{
+  "name": "lesson-path",
+  "description": "Zigzag learning path component — displays a list of items in an alternating left/right layout connected by curved path connectors, inspired by Duolingo. Framework-agnostic: works with Next.js, Vite, or any React setup. Card content is fully customizable via renderCard render prop.",
+  "category": "navigation",
+  "slots": ["renderCard"],
+  "dependencies": [],
+  "examples": [
+    {
+      "description": "Basic usage with image cards",
+      "props": {
+        "items": [
+          { "id": "1", "status": "current", "groupLabel": "Beginner" },
+          { "id": "2", "status": "locked" },
+          { "id": "3", "status": "locked" }
+        ],
+        "pathColor": "#1CB0F6"
+      }
+    },
+    {
+      "description": "Bible series path",
+      "props": {
+        "items": [
+          { "id": "genesis", "status": "completed", "groupLabel": "Old Testament" },
+          { "id": "exodus", "status": "current" },
+          { "id": "leviticus", "status": "locked" }
+        ]
+      }
+    }
+  ]
+}
