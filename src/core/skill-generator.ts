@@ -1,5 +1,5 @@
 import fs from 'fs-extra'
-import type { RegistryJson, RegistryComponent } from './types.js'
+import type { RegistryJson, RegistryComponent, RegistryEntry, InstalledComponent } from './types.js'
 
 /**
  * Generate a Claude Code skill markdown from a registry
@@ -118,6 +118,77 @@ function buildExampleJsx(
     .join(' ')
 
   return `<${componentName} ${propsStr} />`
+}
+
+/**
+ * Generate a minimal consumer-side skill that teaches Claude HOW to use the CLI.
+ * Claude fetches component details on-demand via `blokos get <name> --json`.
+ */
+export function generateConsumerSkill(
+  registries: RegistryEntry[],
+  installed: Record<string, InstalledComponent>,
+  registryName: string,
+  description: string
+): string {
+  const lines: string[] = []
+
+  lines.push('---')
+  lines.push(`name: ${registryName} Design System`)
+  lines.push('description: Component library — use blokos CLI to discover and install components')
+  lines.push('type: project')
+  lines.push('---')
+  lines.push('')
+  lines.push(`# ${registryName} — Component Library`)
+  lines.push('')
+  lines.push(description)
+  lines.push('')
+  lines.push('TRIGGER when: user asks to build UI, create a page, or use a component from this design system.')
+  lines.push('')
+  lines.push('## Rules')
+  lines.push('')
+  lines.push('- ONLY use components from this registry. Do NOT invent components.')
+  lines.push('- Run `blokos list --json` first to see what\'s available.')
+  lines.push('- Run `blokos get <name> --json` to get props and examples before using a component.')
+  lines.push('- Run `blokos add <name>` to install a component before importing it.')
+  lines.push('')
+  lines.push('## How to discover')
+  lines.push('')
+  lines.push('```bash')
+  lines.push('blokos list --json              # all available components')
+  lines.push('blokos get <name> --json        # props, examples, dependencies')
+  lines.push('blokos search "<query>" --json  # find by description')
+  lines.push('blokos suggest "<phrase>" --json  # keyword search')
+  lines.push('```')
+  lines.push('')
+  lines.push('## How to install')
+  lines.push('')
+  lines.push('```bash')
+  lines.push('blokos add <name>     # install component + update this skill')
+  lines.push('blokos update --all   # update all installed components')
+  lines.push('blokos outdated       # check for updates')
+  lines.push('```')
+  lines.push('')
+  lines.push('## Connected Registries')
+  lines.push('')
+  for (const reg of registries) {
+    lines.push(`- **${reg.name}**: ${reg.url}`)
+  }
+  lines.push('')
+
+  const installedEntries = Object.values(installed)
+  lines.push(`## Installed Components (${installedEntries.length})`)
+  lines.push('')
+  if (installedEntries.length === 0) {
+    lines.push('_No components installed yet. Run `blokos add <name>` to install one._')
+  } else {
+    for (const comp of installedEntries) {
+      const version = comp.version ? ` @ ${comp.version}` : ''
+      lines.push(`- **${comp.name}**${version} (${comp.registry})`)
+    }
+  }
+  lines.push('')
+
+  return lines.join('\n')
 }
 
 /**

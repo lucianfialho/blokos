@@ -1,11 +1,11 @@
 import fs from 'fs-extra'
 import path from 'node:path'
-import type { ConsumerConfig, RegistryJson } from './types.js'
-import { fetchRegistry, fetchSkill } from './registry-fetcher.js'
-import { generateSkill } from './skill-generator.js'
+import type { ConsumerConfig } from './types.js'
+import { readLockfile } from './lockfile.js'
+import { generateConsumerSkill } from './skill-generator.js'
 
 /**
- * Update local skill files to only include installed components
+ * Update the local consumer-side skill at .claude/skills/blokos-skill.md
  */
 export async function updateLocalSkill(
   cwd: string,
@@ -14,46 +14,31 @@ export async function updateLocalSkill(
   const skillsDir = path.join(cwd, '.claude', 'skills')
   await fs.ensureDir(skillsDir)
 
-  const installedNames = new Set(
-    Object.keys(config.installed || {})
-  )
+  // Use the first registry name/description as the primary identity, or a generic fallback
+  const primaryRegistry = config.registries[0]
+  const registryName = primaryRegistry?.name ?? 'Design System'
+  const description = `Connected to ${config.registries.map((r) => r.name).join(', ')}.`
 
-  for (const reg of config.registries) {
-    try {
-      const registry = await fetchRegistry(reg.url, reg.token)
+  // Read installed components from lockfile for version info
+  const lock = await readLockfile(cwd)
+  const installed = config.installed ?? {}
 
-      // Filter registry to only installed components from this registry
-      const filteredRegistry: RegistryJson = {
-        ...registry,
-        components: {},
-      }
-
-      for (const [name, comp] of Object.entries(registry.components)) {
-        if (installedNames.has(name)) {
-          filteredRegistry.components[name] = comp
-        }
-      }
-
-      if (Object.keys(filteredRegistry.components).length === 0) continue
-
-      // Try fetching overrides from registry skill, or generate fresh
-      let skillContent: string
-
-      if (registry.skill) {
-        try {
-          const fullSkill = await fetchSkill(reg.url, registry.skill, reg.token)
-          skillContent = fullSkill
-        } catch {
-          skillContent = generateSkill(filteredRegistry)
-        }
-      } else {
-        skillContent = generateSkill(filteredRegistry)
-      }
-
-      const skillFileName = `blokos-${reg.name.replace(/[^a-z0-9-]/gi, '-').toLowerCase()}.md`
-      await fs.writeFile(path.join(skillsDir, skillFileName), skillContent)
-    } catch (err) {
-      console.warn(`  Warning: could not update skill for ${reg.name}: ${err}`)
+  // Enrich installed components with version from lockfile
+  const installedWithVersion: typeof installed = {}
+  for (const [name, comp] of Object.entries(installed)) {
+    installedWithVersion[name] = {
+      ...comp,
+      version: lock.components[name]?.version ?? comp.version,
     }
   }
+
+  const skillContent = generateConsumerSkill(
+    config.registries,
+    installedWithVersion,
+    registryName,
+    description
+  )
+
+  const skillFilePath = path.join(skillsDir, 'blokos-skill.md')
+  await fs.writeFile(skillFilePath, skillContent)
 }
