@@ -8,6 +8,7 @@ import { execSync } from 'node:child_process'
 import { CONSUMER_CONFIG } from '../core/constants.js'
 import { fetchRegistry, fetchComponentFile, resolveToken } from '../core/registry-fetcher.js'
 import { updateLocalSkill } from '../core/skill-updater.js'
+import { readLockfile, writeLockfile, hashFile } from '../core/lockfile.js'
 import type { ConsumerConfig, RegistryComponent } from '../core/types.js'
 
 async function loadConsumerConfig(cwd: string): Promise<ConsumerConfig> {
@@ -105,6 +106,7 @@ export const addCommand = new Command('add')
     if (!config.installed) config.installed = {}
 
     const depsToInstall = new Set<string>()
+    const lock = await readLockfile(cwd)
 
     for (const item of toInstall) {
       const comp = item.component
@@ -128,13 +130,18 @@ export const addCommand = new Command('add')
       }
 
       // Download component files (only .tsx files go to output)
+      const installedFiles: Record<string, string> = {}
       for (const filePath of comp.files) {
         if (!filePath.endsWith('.tsx')) continue
 
         try {
           const content = await fetchComponentFile(item.registryUrl, filePath, item.token)
           const fileName = path.basename(filePath)
-          await fs.writeFile(path.join(outputDir, fileName), content)
+          const destPath = path.join(outputDir, fileName)
+          await fs.writeFile(destPath, content)
+          // Record hash for lockfile
+          const relPath = path.join(config.outputDir, fileName)
+          installedFiles[relPath] = await hashFile(destPath)
         } catch (err) {
           console.warn(`  Warning: could not fetch ${filePath}: ${err}`)
         }
@@ -150,6 +157,15 @@ export const addCommand = new Command('add')
         name: comp.name,
         registry: item.registryName,
         files: comp.files.filter((f) => f.endsWith('.tsx')).map((f) => path.basename(f)),
+      }
+
+      // Update lockfile entry
+      lock.components[comp.name] = {
+        registry: item.registryName,
+        registryUrl: item.registryUrl,
+        version: (comp as any).version ?? '0.0.0',
+        installedAt: new Date().toISOString(),
+        files: installedFiles,
       }
     }
 
@@ -182,6 +198,7 @@ export const addCommand = new Command('add')
       }
     }
 
+    await writeLockfile(cwd, lock)
     await saveConsumerConfig(cwd, config)
 
     // Update local skill
