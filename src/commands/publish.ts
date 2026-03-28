@@ -3,11 +3,13 @@ import chalk from 'chalk'
 import ora from 'ora'
 import fs from 'fs-extra'
 import path from 'node:path'
-import { CONFIG_FILE, REGISTRY_FILE, SKILL_DIR, SKILL_FILE, SKILL_OVERRIDES_FILE } from '../core/constants.js'
-import { buildRegistry } from '../core/registry-builder.js'
+import { CONFIG_FILE, REGISTRY_FILE, SKILL_DIR, SKILL_FILE, SKILL_OVERRIDES_FILE, THEME_DIR, THEME_CSS_FILE } from '../core/constants.js'
+import { buildRegistry, loadConfig } from '../core/registry-builder.js'
 import { generateSkill, loadSkillOverrides } from '../core/skill-generator.js'
 import { bumpPackageJson } from '../core/version-bumper.js'
 import { diffRegistries } from '../core/registry-diff.js'
+import { resolveTokenSource } from '../core/token-reader.js'
+import { generateTokenCss } from '../core/css-generator.js'
 import type { RegistryJson } from '../core/types.js'
 
 export const publishCommand = new Command('publish')
@@ -66,11 +68,26 @@ export const publishCommand = new Command('publish')
     registry.skill = `${SKILL_DIR}/${SKILL_FILE}`
     await fs.writeJson(registryPath, registry, { spaces: 2 })
 
+    // Generate token CSS if token files exist
+    const config = await loadConfig(cwd)
+    const tokens = await resolveTokenSource(cwd, config.mode)
+    let tokenCount = 0
+    if (tokens) {
+      const css = generateTokenCss(tokens)
+      const outputDir = path.join(cwd, THEME_DIR)
+      await fs.ensureDir(outputDir)
+      await fs.writeFile(path.join(outputDir, THEME_CSS_FILE), css)
+      tokenCount = Object.keys(tokens).length
+    }
+
     spinner.succeed(`Published! [v${registry.version}]`)
 
     console.log('')
     console.log(`  ${chalk.green(REGISTRY_FILE)} — ${componentCount} component(s)`)
     console.log(`  ${chalk.green(`${SKILL_DIR}/${SKILL_FILE}`)} — AI skill`)
+    if (tokenCount > 0) {
+      console.log(`  ${chalk.green(`${THEME_DIR}/${THEME_CSS_FILE}`)} — ${tokenCount} token(s)`)
+    }
 
     if (diff.length > 0) {
       console.log('')

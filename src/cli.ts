@@ -7,6 +7,7 @@ import { addCommand } from './commands/add.js'
 import { listCommand } from './commands/list.js'
 import { outdatedCommand } from './commands/outdated.js'
 import { updateCommand } from './commands/update.js'
+import { tokenCommand } from './commands/token-sync.js'
 
 const program = new Command()
 
@@ -23,5 +24,6 @@ program.addCommand(addCommand)
 program.addCommand(listCommand)
 program.addCommand(outdatedCommand)
 program.addCommand(updateCommand)
+program.addCommand(tokenCommand)
 
 program.parse()
