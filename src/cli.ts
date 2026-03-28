@@ -8,6 +8,9 @@ import { listCommand } from './commands/list.js'
 import { outdatedCommand } from './commands/outdated.js'
 import { updateCommand } from './commands/update.js'
 import { tokenCommand } from './commands/token-sync.js'
+import { searchCommand } from './commands/search.js'
+import { getCommand } from './commands/get.js'
+import { suggestCommand } from './commands/suggest.js'
 
 const program = new Command()
 
@@ -25,5 +28,8 @@ program.addCommand(listCommand)
 program.addCommand(outdatedCommand)
 program.addCommand(updateCommand)
 program.addCommand(tokenCommand)
+program.addCommand(searchCommand)
+program.addCommand(getCommand)
+program.addCommand(suggestCommand)
 
 program.parse()
