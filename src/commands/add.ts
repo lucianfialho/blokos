@@ -6,7 +6,7 @@ import fs from 'fs-extra'
 import path from 'node:path'
 import { execSync } from 'node:child_process'
 import { CONSUMER_CONFIG } from '../core/constants.js'
-import { fetchRegistry, fetchComponentFile } from '../core/registry-fetcher.js'
+import { fetchRegistry, fetchComponentFile, resolveToken } from '../core/registry-fetcher.js'
 import { updateLocalSkill } from '../core/skill-updater.js'
 import type { ConsumerConfig, RegistryComponent } from '../core/types.js'
 
@@ -61,13 +61,14 @@ export const addCommand = new Command('add')
 
     for (const reg of config.registries) {
       try {
-        const registry = await fetchRegistry(reg.url, reg.token)
+        const token = await resolveToken(reg.name)
+        const registry = await fetchRegistry(reg.url, token)
         for (const comp of Object.values(registry.components)) {
           allComponents.push({
             component: comp,
             registryName: reg.name,
             registryUrl: reg.url,
-            token: reg.token,
+            token,
           })
         }
         if (registry.theme) {
@@ -75,7 +76,7 @@ export const addCommand = new Command('add')
             theme: registry.theme,
             registryName: reg.name,
             registryUrl: reg.url,
-            token: reg.token,
+            token,
           })
         }
       } catch (err) {

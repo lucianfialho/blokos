@@ -55,7 +55,7 @@ export interface ConsumerConfig {
 export interface RegistryEntry {
   name: string
   url: string
-  token?: string
+  // token removed — stored in .env.local only, never committed to git
 }
 
 export interface InstalledComponent {
