@@ -1,6 +1,19 @@
 import type { RegistryJson } from './types.js'
 
 /**
+ * Resolve an auth token for a registry.
+ * Priority: explicit token > BLOKOS_TOKEN_<NAME> env var > undefined
+ */
+export async function resolveToken(
+  registryName: string,
+  explicitToken?: string
+): Promise<string | undefined> {
+  if (explicitToken) return explicitToken
+  const envKey = `BLOKOS_TOKEN_${registryName.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`
+  return process.env[envKey]
+}
+
+/**
  * Convert a GitHub repo URL to the raw content base URL
  * github.com/owner/repo → raw.githubusercontent.com/owner/repo/main
  */

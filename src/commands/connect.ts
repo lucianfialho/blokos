@@ -5,7 +5,7 @@ import prompts from 'prompts'
 import fs from 'fs-extra'
 import path from 'node:path'
 import { CONSUMER_CONFIG } from '../core/constants.js'
-import { fetchRegistry } from '../core/registry-fetcher.js'
+import { fetchRegistry, resolveToken } from '../core/registry-fetcher.js'
 import type { ConsumerConfig } from '../core/types.js'
 
 async function loadConsumerConfig(cwd: string): Promise<ConsumerConfig> {
@@ -40,7 +40,9 @@ export const connectCommand = new Command('connect')
       console.log(chalk.bold('Connected registries:'))
       console.log('')
       for (const reg of config.registries) {
-        console.log(`  ${chalk.cyan(reg.name)} — ${reg.url}`)
+        const token = await resolveToken(reg.name)
+        const authLabel = token ? chalk.green(' (authenticated)') : ''
+        console.log(`  ${chalk.cyan(reg.name)} — ${reg.url}${authLabel}`)
       }
       return
     }
@@ -75,7 +77,7 @@ export const connectCommand = new Command('connect')
 
       // Check if already connected
       const existing = config.registries.findIndex((r) => r.url === url)
-      const entry = { name: registry.name, url, token }
+      const entry = { name: registry.name, url }
 
       if (existing >= 0) {
         config.registries[existing] = entry
@@ -89,7 +91,7 @@ export const connectCommand = new Command('connect')
 
       await saveConsumerConfig(cwd, config)
 
-      // Store token in .env.local if provided
+      // Store token in .env.local if provided (never in blokos.json)
       if (token) {
         const envPath = path.join(cwd, '.env.local')
         const envKey = `BLOKOS_TOKEN_${registry.name.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`
@@ -101,6 +103,17 @@ export const connectCommand = new Command('connect')
           envContent += `\n${envKey}=${token}\n`
           await fs.writeFile(envPath, envContent)
         }
+
+        // Ensure .env.local is in .gitignore
+        const gitignorePath = path.join(cwd, '.gitignore')
+        if (await fs.pathExists(gitignorePath)) {
+          const gitignoreContent = await fs.readFile(gitignorePath, 'utf-8')
+          if (!gitignoreContent.includes('.env.local')) {
+            await fs.appendFile(gitignorePath, '\n.env.local\n')
+          }
+        }
+
+        console.log(chalk.green('  Token saved to .env.local (not committed)'))
       }
 
       spinner.succeed(`Connected to ${chalk.cyan(registry.name)}!`)
