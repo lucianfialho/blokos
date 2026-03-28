@@ -12,11 +12,13 @@ export async function loadConfig(cwd: string): Promise<BlokosConfig> {
   const nameMatch = source.match(/name:\s*['"]([^'"]+)['"]/)
   const descMatch = source.match(/description:\s*['"]([^'"]+)['"]/)
   const frameworkMatch = source.match(/framework:\s*['"]([^'"]+)['"]/)
+  const modeMatch = source.match(/mode:\s*['"]([^'"]+)['"]/)
 
   return {
     name: nameMatch?.[1] || path.basename(cwd),
     description: descMatch?.[1] || '',
     framework: (frameworkMatch?.[1] as 'react') || 'react',
+    mode: (modeMatch?.[1] as BlokosConfig['mode']) || 'tailwind',
   }
 }
 
