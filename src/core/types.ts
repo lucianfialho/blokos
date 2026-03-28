@@ -2,6 +2,7 @@ export interface BlokosConfig {
   name: string
   description: string
   framework: 'react'
+  mode: 'tailwind' | 'tailwind+shadcn' | 'css'
   baseUrl?: string
   componentsDir?: string
 }
