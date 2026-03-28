@@ -24,12 +24,20 @@ export async function buildRegistry(cwd: string): Promise<RegistryJson> {
   const config = await loadConfig(cwd)
   const componentsDir = path.join(cwd, config.componentsDir || COMPONENTS_DIR)
 
+  // Read version from package.json
+  const pkgPath = path.join(cwd, 'package.json')
+  let version = '1.0.0'
+  if (await fs.pathExists(pkgPath)) {
+    const pkg = await fs.readJson(pkgPath)
+    version = pkg.version || '1.0.0'
+  }
+
   const components: Record<string, RegistryComponent> = {}
 
   if (!(await fs.pathExists(componentsDir))) {
     return {
       name: config.name,
-      version: '1.0.0',
+      version,
       description: config.description,
       framework: config.framework,
       components,
@@ -95,7 +103,7 @@ export async function buildRegistry(cwd: string): Promise<RegistryJson> {
 
   return {
     name: config.name,
-    version: '1.0.0',
+    version,
     description: config.description,
     framework: config.framework,
     components,
