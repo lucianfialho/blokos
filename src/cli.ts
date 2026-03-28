@@ -5,6 +5,7 @@ import { publishCommand } from './commands/publish.js'
 import { connectCommand } from './commands/connect.js'
 import { addCommand } from './commands/add.js'
 import { listCommand } from './commands/list.js'
+import { tokenCommand } from './commands/token-sync.js'
 
 const program = new Command()
 
@@ -19,5 +20,6 @@ program.addCommand(publishCommand)
 program.addCommand(connectCommand)
 program.addCommand(addCommand)
 program.addCommand(listCommand)
+program.addCommand(tokenCommand)
 
 program.parse()
